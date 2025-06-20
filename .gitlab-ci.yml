@@ -1,0 +1,141 @@
+stages:
+  - back-end
+  - front-end
+
+back-end_lint:
+  stage: back-end
+  image: python:3.13-slim
+  script:
+    - cd back-end
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install flake8
+    - echo "=== back-end Lint ==="
+    - flake8 .
+  allow_failure: false
+
+back-end_test:
+  stage: back-end
+  image: python:3.13-slim
+  script:
+    - cd back-end
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install pytest httpx
+    - echo "=== back-end Tests ==="
+    - pytest tests/
+  allow_failure: false
+
+  # 🔐 SCA - pip-audit
+backend_audit:
+  stage: back-end
+  image: python:3.13-slim
+  script:
+    - cd back-end
+    - pip install --upgrade pip
+    - pip install pip-audit
+    - echo "=== BACKEND pip-audit ==="
+    - pip-audit
+  allow_failure: false
+
+# 🛡️ SAST - bandit
+backend_sast:
+  stage: back-end
+  image: python:3.13-slim
+  script:
+    - cd back-end
+    - pip install bandit
+    - echo "=== BACKEND bandit ==="
+    - bandit -r . -lll
+  allow_failure: false
+
+# 🕵️ Secrets - trufflehog
+backend_secrets:
+  stage: back-end
+  image: python:3.13-slim
+  before_script:
+    - apt-get update && apt-get install -y git curl wget unzip
+    - curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+    - trufflehog --version
+  script:
+    - echo "=== BACKEND trufflehog ==="
+    - trufflehog filesystem ./back-end --fail --exclude_paths .trufflehogignore
+  allow_failure: false
+
+front-end_build:
+  stage: front-end
+  image: node:20
+  script:
+    - cd front-end
+    - npm install
+    - echo "=== FRONTEND Build ==="
+    - npm run build
+  rules:
+    - exists:
+        - front-end/package.json
+
+front-end_lint:
+  stage: front-end
+  image: node:20
+  script:
+    - cd front-end
+    - npm ci
+    - echo "=== FRONTEND Lint ==="
+    - npx eslint . --ext .js,.ts,.vue
+  allow_failure: false
+
+front-end_test:
+  stage: front-end
+  image: node:20
+  services:
+    - name: python:3.13-slim
+      alias: backend
+      command: ["sh", "-c", "cd /app/back-end && pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000"]
+  before_script:
+    - cd front-end
+    - npm ci
+    - npx playwright install chromium
+    - npx playwright install-deps
+  script:
+    - cd front-end
+    - echo "=== FRONTEND Unit Tests ==="
+    - npm run test:unit
+    - echo "=== FRONTEND Component Tests ==="
+    - npm run test:component
+    - echo "=== FRONTEND E2E Tests ==="
+    - npm run test:e2e
+    - echo "=== FRONTEND Performance Tests ==="
+    - npm run test:performance
+  allow_failure: false
+
+front-end_audit:
+  stage: front-end
+  image: node:20
+  script:
+    - cd front-end
+    - npm ci
+    - echo "=== FRONTEND SCA audit ==="
+    - npx audit-ci --moderate
+  allow_failure: false
+
+front-end_sast:
+  stage: front-end
+  image: node:20
+  script:
+    - cd front-end
+    - npm ci
+    - echo "=== FRONTEND SAST ==="
+    - npx eslint . --ext .js,.ts,.vue --plugin security --rule "security/detect-object-injection:warn"
+  allow_failure: false
+
+front-end_secrets: 
+  stage: front-end
+  image: python:3.11-slim
+  before_script:
+    - apt-get update && apt-get install -y git curl wget unzip
+    - curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+    - trufflehog --version
+  script:
+    - echo "=== FRONTEND trufflehog v3 scan ==="
+    - trufflehog filesystem ./front-end --fail
+  allow_failure: false

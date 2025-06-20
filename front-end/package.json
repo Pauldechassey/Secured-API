@@ -1,0 +1,32 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "test:security": "cypress run --spec 'test/non_functional/test_security.cy.ts'",
+    "test:unit": "vitest run --reporter=junit --outputFile=test-results.xml",
+    "test:component": "vitest run src/components --reporter=junit",
+    "test:e2e": "playwright test",
+    "test:performance": "vitest run tests/performance --reporter=junit",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@testing-library/vue": "^8.1.0",
+    "@tsconfig/node18": "^18.2.4",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.7.0",
+    "happy-dom": "^12.10.3",
+    "jsdom": "^23.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3",
+    "vue-tsc": "^2.2.10"
+  },
+  "dependencies": {
+    "vue": "^3.5.16",
+    "vue-router": "^4.5.1"
+  }
+}

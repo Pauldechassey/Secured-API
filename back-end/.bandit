@@ -1,0 +1,3 @@
+exclude_dirs:
+  - venv
+#fichier pour exclure le .venv lorsque l'on fait bandit -r . -c .bandit
